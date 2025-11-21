@@ -1,4 +1,4 @@
-# main.py
+# main.py 
 from bot.config import TenantConfig, InMemoryConfigStore
 from bot.state import InMemoryStateStore
 from bot.core import handle_message
