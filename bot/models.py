@@ -1,17 +1,27 @@
 # bot/models.py
+import os
+from typing import Dict, List
+
 import requests
-from typing import List, Dict
+
 from .config import TenantConfig
 from .state import SessionState
 
 # --- Configuration ---
-API_KEY = "sk-97b27b041cc0446e99a4ee2a0f85ab60"   # ⚠️ Replace with your real key or load from env
-BASE_URL = "https://llm.lab.sspcloud.fr/api"
+BASE_URL = os.environ.get("MODEL_BASE_URL", "https://llm.lab.sspcloud.fr/api")
 
-HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {API_KEY}",
-}
+
+def _build_headers() -> Dict[str, str]:
+    api_key = os.environ.get("MODEL_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "MODEL_API_KEY environment variable is required to call the model API."
+        )
+
+    return {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
 
 
 def build_system_prompt(tenant: TenantConfig) -> str:
@@ -46,7 +56,7 @@ def make_oss_call(
 
     response = requests.post(
         f"{BASE_URL}/chat/completions",
-        headers=HEADERS,
+        headers=_build_headers(),
         json=payload,
         timeout=60,
     )

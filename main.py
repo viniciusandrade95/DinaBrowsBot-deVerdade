@@ -1,26 +1,8 @@
-# main.py 
+# main.py
 from bot.config import TenantConfig, InMemoryConfigStore
 from bot.state import InMemoryStateStore
 from bot.core import handle_message
-
-
-def build_demo_config_store():
-    demo_tenant = TenantConfig(
-        tenant_id="store-1",
-        name="Sneaker Planet",
-        tone="friendly",
-        language="en",
-        currency="€",
-        default_model="20b",
-        allow_chitchat=True,
-        max_reply_length=600,
-        store_info={
-            "openingHours": "Mon–Sat 10:00–20:00",
-            "address": "123 Sneaker Street",
-            "phone": "+49 123 456 789",
-        },
-    )
-    return InMemoryConfigStore({"store-1": demo_tenant})
+from app import build_demo_config_store
 
 
 if __name__ == "__main__":
