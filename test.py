@@ -1,15 +1,20 @@
+import os
+
 import requests
 
 import json
- 
+
 # --- Configuration ---
 
-API_KEY = "sk-97b27b041cc0446e99a4ee2a0f85ab60"  # Your API key
+API_KEY = os.environ.get("MODEL_API_KEY")  # Your API key
 
-BASE_URL = "https://llm.lab.sspcloud.fr/api"      # The API endpoint
+if not API_KEY:
+    raise RuntimeError("Set MODEL_API_KEY in your environment before running this test.")
 
-MODEL_ID = "gpt-oss:120b"                        # Explicitly set the desired model
- 
+BASE_URL = os.environ.get("MODEL_BASE_URL", "https://llm.lab.sspcloud.fr/api")
+
+MODEL_ID = "gpt-oss:120b"  # Explicitly set the desired model
+
 # --- Headers for the API request ---
 
 headers = {
