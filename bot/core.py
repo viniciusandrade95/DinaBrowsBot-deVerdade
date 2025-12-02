@@ -42,13 +42,13 @@ def handle_message(
     model_choice = decide_model(intent, tenant, session, text)
 
     if model_choice is None:
-        reply = handle_rule_based(intent, text, tenant)
+        reply = handle_rule_based(intent, text, tenant, session)
     elif not has_model_credentials():
         # Avoid calling the model when credentials are missing; keep helping with store info
-        reply = handle_rule_based("GENERAL_QUERY", text, tenant)
+        reply = handle_rule_based("GENERAL_QUERY", text, tenant, session)
     else:
         # model_choice is "20b" or "120b"
-        model_name = f"gpt-oss:20b"
+        model_name = f"gpt-oss:{model_choice}"
         try:
             reply = call_oss_model(model_name, tenant, session, text)
         except Exception as exc:
@@ -58,13 +58,6 @@ def handle_message(
                 "I'm having trouble reaching our assistant right now. "
                 "Tell me what you need about the store and I'll do my best with the info I have."
             )
-
-    # Avoid echoing the user's text back directly
-    if reply.strip().lower() == text.strip().lower():
-        reply = (
-            "I'm here to help with products, availability, and store info. "
-            "Tell me what you need and I'll share the details."
-        )
 
     # Avoid echoing the user's text back directly
     if reply.strip().lower() == text.strip().lower():

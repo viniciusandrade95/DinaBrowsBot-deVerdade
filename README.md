@@ -30,6 +30,10 @@ This repo exposes a simple retail assistant chatbot over HTTP using FastAPI. The
 
 The app binds to `0.0.0.0` on the port specified by the `PORT` environment variable (default `8000`).
 
+When no model credentials are configured, the bot switches to a rule-based flow that answers greetings, store logistics
+(hours/address), shipping/returns, stock checks, and rotates guided prompts so conversations keep moving instead of repeating
+the same message.
+
 ## WhatsApp integration notes
 - Outbound replies use Meta's Graph API; set the `WHATSAPP_*` environment variables shown above.
 - The webhook expects the standard Cloud API payload shape (`entry -> changes -> value -> messages`).
