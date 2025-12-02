@@ -48,7 +48,7 @@ def handle_message(
         reply = handle_rule_based("GENERAL_QUERY", text, tenant)
     else:
         # model_choice is "20b" or "120b"
-        model_name = f"gpt-oss:{model_choice}"
+        model_name = f"gpt-oss:20b"
         try:
             reply = call_oss_model(model_name, tenant, session, text)
         except Exception as exc:
@@ -58,6 +58,13 @@ def handle_message(
                 "I'm having trouble reaching our assistant right now. "
                 "Tell me what you need about the store and I'll do my best with the info I have."
             )
+
+    # Avoid echoing the user's text back directly
+    if reply.strip().lower() == text.strip().lower():
+        reply = (
+            "I'm here to help with products, availability, and store info. "
+            "Tell me what you need and I'll share the details."
+        )
 
     # Avoid echoing the user's text back directly
     if reply.strip().lower() == text.strip().lower():
