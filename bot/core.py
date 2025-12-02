@@ -45,7 +45,7 @@ def handle_message(
         reply = handle_rule_based(intent, text, tenant)
     else:
         # model_choice is "20b" or "120b"
-        model_name = f"gpt-oss:{model_choice}"
+        model_name = f"gpt-oss:20b"
         try:
             reply = call_oss_model(model_name, tenant, session, text)
         except Exception as exc:
