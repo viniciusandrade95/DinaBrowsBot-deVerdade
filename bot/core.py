@@ -3,7 +3,7 @@ from .config import ConfigStore, TenantConfig
 from .state import StateStore, SessionState
 from .router import classify_intent, decide_model, hash_text
 from .handlers import handle_rule_based
-from .models import call_oss_model
+from .models import call_oss_model, has_model_credentials
 
 
 def handle_message(
@@ -42,11 +42,29 @@ def handle_message(
     model_choice = decide_model(intent, tenant, session, text)
 
     if model_choice is None:
-        reply = handle_rule_based(intent, text, tenant)
+        reply = handle_rule_based(intent, text, tenant, session)
+    elif not has_model_credentials():
+        # Avoid calling the model when credentials are missing; keep helping with store info
+        reply = handle_rule_based("GENERAL_QUERY", text, tenant, session)
     else:
         # model_choice is "20b" or "120b"
         model_name = f"gpt-oss:{model_choice}"
-        reply = call_oss_model(model_name, tenant, session, text)
+        try:
+            reply = call_oss_model(model_name, tenant, session, text)
+        except Exception as exc:
+            # Model unavailable or failed (e.g., missing API key). Fall back to a safe default
+            session.context["last_model_error"] = str(exc)
+            reply = (
+                "I'm having trouble reaching our assistant right now. "
+                "Tell me what you need about the store and I'll do my best with the info I have."
+            )
+
+    # Avoid echoing the user's text back directly
+    if reply.strip().lower() == text.strip().lower():
+        reply = (
+            "I'm here to help with products, availability, and store info. "
+            "Tell me what you need and I'll share the details."
+        )
 
     # Update state for next turn
     session.context["last_question_hash"] = hash_text(text)
