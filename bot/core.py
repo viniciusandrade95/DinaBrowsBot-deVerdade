@@ -48,6 +48,13 @@ def handle_message(
         model_name = f"gpt-oss:{model_choice}"
         reply = call_oss_model(model_name, tenant, session, text)
 
+    # Avoid echoing the user's text back directly
+    if reply.strip().lower() == text.strip().lower():
+        reply = (
+            "I'm here to help with products, availability, and store info. "
+            "Tell me what you need and I'll share the details."
+        )
+
     # Update state for next turn
     session.context["last_question_hash"] = hash_text(text)
     session.last_updated = __import__("time").time()
