@@ -46,7 +46,22 @@ def handle_message(
     else:
         # model_choice is "20b" or "120b"
         model_name = f"gpt-oss:{model_choice}"
-        reply = call_oss_model(model_name, tenant, session, text)
+        try:
+            reply = call_oss_model(model_name, tenant, session, text)
+        except Exception as exc:
+            # Model unavailable or failed (e.g., missing API key). Fall back to a safe default
+            session.context["last_model_error"] = str(exc)
+            reply = (
+                "I'm having trouble reaching our assistant right now. "
+                "Tell me what you need about the store and I'll do my best with the info I have."
+            )
+
+    # Avoid echoing the user's text back directly
+    if reply.strip().lower() == text.strip().lower():
+        reply = (
+            "I'm here to help with products, availability, and store info. "
+            "Tell me what you need and I'll share the details."
+        )
 
     # Update state for next turn
     session.context["last_question_hash"] = hash_text(text)
