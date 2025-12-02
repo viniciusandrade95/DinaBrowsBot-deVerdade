@@ -72,3 +72,40 @@ def send_template_message(
         )
 
     return response.json()
+
+
+def send_text_message(
+    *,
+    to: str,
+    body: str,
+    access_token: Optional[str] = None,
+    phone_number_id: Optional[str] = None,
+    api_version: Optional[str] = None,
+    timeout: int = 10,
+) -> Dict[str, Any]:
+    """Send a plain text WhatsApp message using the Graph API."""
+
+    token = _get_env("WHATSAPP_ACCESS_TOKEN", access_token)
+    phone_id = _get_env("WHATSAPP_PHONE_NUMBER_ID", phone_number_id)
+    version = api_version or os.getenv("WHATSAPP_API_VERSION", DEFAULT_API_VERSION)
+
+    url = _build_url(phone_id, version)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    payload: Dict[str, Any] = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": body},
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"WhatsApp API error {response.status_code}: {response.text}"
+        )
+
+    return response.json()
