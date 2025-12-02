@@ -3,7 +3,7 @@ from .config import ConfigStore, TenantConfig
 from .state import StateStore, SessionState
 from .router import classify_intent, decide_model, hash_text
 from .handlers import handle_rule_based
-from .models import call_oss_model
+from .models import call_oss_model, has_model_credentials
 
 
 def handle_message(
@@ -43,6 +43,9 @@ def handle_message(
 
     if model_choice is None:
         reply = handle_rule_based(intent, text, tenant)
+    elif not has_model_credentials():
+        # Avoid calling the model when credentials are missing; keep helping with store info
+        reply = handle_rule_based("GENERAL_QUERY", text, tenant)
     else:
         # model_choice is "20b" or "120b"
         model_name = f"gpt-oss:20b"

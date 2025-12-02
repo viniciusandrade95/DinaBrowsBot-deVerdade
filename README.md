@@ -12,7 +12,7 @@ This repo exposes a simple retail assistant chatbot over HTTP using FastAPI. The
    ```bash
    pip install -r requirements.txt
    ```
-2. Set your model credentials:
+2. Set your model credentials (if unset, the bot will fall back to simple rule-based replies):
    ```bash
    export MODEL_API_KEY=your_key
    export MODEL_BASE_URL=https://llm.lab.sspcloud.fr/api  # or your endpoint

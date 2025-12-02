@@ -11,6 +11,12 @@ from .state import SessionState
 BASE_URL = os.environ.get("MODEL_BASE_URL", "https://llm.lab.sspcloud.fr/api")
 
 
+def has_model_credentials() -> bool:
+    """Return True when the model API key is present."""
+
+    return bool(os.environ.get("MODEL_API_KEY"))
+
+
 def _build_headers() -> Dict[str, str]:
     api_key = os.environ.get("MODEL_API_KEY")
     if not api_key:
@@ -48,7 +54,7 @@ def make_oss_call(
     Low-level call to the GPT-OSS chat endpoint.
     """
     payload = {
-        "model": "gpt-oss:20b",
+        "model": model_name,
         "messages": messages,
         "max_tokens": max_tokens,
         "stream": False,
