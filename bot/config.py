@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from typing import Literal, Dict
 
+from .knowledge import get_studio_info
 
 Tone = Literal["friendly", "professional", "playful"]
 
@@ -27,27 +28,23 @@ class ConfigStore:
 
 
 class InMemoryConfigStore(ConfigStore):
-    """Simple per-tenant config, replace with DB later."""
+    """Simple per-tenant config."""
 
     def __init__(self, configs: Dict[str, TenantConfig]):
         self._configs = configs
 
     def load_tenant_config(self, tenant_id: str) -> TenantConfig:
         if tenant_id not in self._configs:
-            # default config if not found
+            info = get_studio_info()
             return TenantConfig(
                 tenant_id=tenant_id,
-                name=f"Store {tenant_id}",
+                name=info["name"],
                 tone="friendly",
-                language="en",
-                currency="USD",
+                language="pt",
+                currency="BRL",
                 default_model="20b",
-                allow_chitchat=True,
+                allow_chitchat=False,
                 max_reply_length=800,
-                store_info={
-                    "openingHours": "Mon–Fri 09:00–18:00",
-                    "address": "Main street 123",
-                    "phone": "+00 000 000 000",
-                },
+                store_info=info,
             )
         return self._configs[tenant_id]
