@@ -92,7 +92,7 @@ class ConversationFlowTests(unittest.TestCase):
             "help with sneakers",  # generic guidance with suggestions
             "check stock",  # size mention loops back to stock prompt
             "courier delivery",  # shipping branch
-            "help with sneakers",  # generic closing guidance
+            "thanks for chatting",  # closing branch
         ]
 
         replies = []

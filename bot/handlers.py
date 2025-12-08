@@ -92,6 +92,16 @@ def handle_rule_based(
             "I’ll look it up for you."
         )
 
+    if intent == "CLOSING":
+        if session is not None:
+            session.flow = "CLOSED"
+            session.step = "END"
+            session.context["closed"] = True
+        return (
+            f"Thanks for chatting with {tenant.name}! "
+            "I’ve noted your request. If you need anything else later, just send a new message."
+        )
+
     if intent == "NOISE":
         return "I didn’t quite catch that. Could you rephrase your question?"
 

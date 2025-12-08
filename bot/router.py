@@ -11,6 +11,9 @@ def hash_text(text: str) -> str:
 
 def classify_intent(text: str) -> str:
     t = text.lower().strip()
+    closing_keywords = ["thanks", "thank you", "bye", "goodbye", "that is all", "that's all", "done", "no more", "appreciate it"]
+    if any(word in t for word in closing_keywords):
+        return "CLOSING"
     if any(w in t for w in ["hour", "open", "close", "opening"]):
         return "STORE_HOURS"
     if any(w in t for w in ["where", "address", "location"]):
@@ -34,6 +37,8 @@ def decide_model(
       - "20b" -> use gpt-oss:20b
       - "120b" -> use gpt-oss:120b
     """
+    if intent == "CLOSING":
+        return None
     # Pure rule-based
     if intent in {"STORE_HOURS", "STORE_LOCATION"}:
         return None

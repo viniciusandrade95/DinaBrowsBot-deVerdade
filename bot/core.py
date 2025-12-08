@@ -27,6 +27,13 @@ def handle_message(
     tenant: TenantConfig = config_store.load_tenant_config(tenant_id)
     session: SessionState = state_store.get_session(tenant_id, user_id)
 
+    # If the previous conversation was explicitly closed, start a new one unless the
+    # user is still saying goodbye.
+    tentative_intent = classify_intent(text)
+    if session.context.get("closed") and tentative_intent != "CLOSING":
+        session.reset()
+    intent = classify_intent(text)
+
     # Update simple metrics / context
     history_len = session.context.get("history_len", 0)
     session.context["history_len"] = history_len + 1
@@ -36,8 +43,6 @@ def handle_message(
         return "That message is a bit long. Could you shorten it a little?"
 
     # Classify intent
-    intent = classify_intent(text)
-
     # Decide if we use rules only, or which model
     model_choice = decide_model(intent, tenant, session, text)
 

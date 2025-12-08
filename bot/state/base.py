@@ -19,6 +19,13 @@ class SessionState:
         """Update last_updated to current time."""
         self.last_updated = time.time()
 
+    def reset(self) -> None:
+        """Clear conversational context to start a fresh workflow."""
+        self.flow = "IDLE"
+        self.step = "NONE"
+        self.context = {}
+        self.touch()
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
