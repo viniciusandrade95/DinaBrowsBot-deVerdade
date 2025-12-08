@@ -37,6 +37,25 @@ state_store = build_state_store()
 logger = logging.getLogger(__name__)
 
 
+def normalize_brazilian_number(number: str) -> str:
+    """Ensure Brazilian WhatsApp numbers include the leading '9' after the area code."""
+
+    if not number:
+        return number
+
+    stripped = number.strip()
+    digits_only = "".join(ch for ch in stripped if ch.isdigit())
+    has_plus = stripped.startswith("+")
+
+    if digits_only.startswith("55"):
+        # 55 + area (2) + mobile (9). If length is 12 digits, insert missing '9'.
+        if len(digits_only) == 12:
+            digits_only = f"{digits_only[:4]}9{digits_only[4:]}"
+        return f"+{digits_only}" if has_plus or stripped.startswith("+55") else digits_only
+
+    return stripped
+
+
 class ChatRequest(BaseModel):
     text: str
     tenant_id: str = "store-1"
@@ -105,7 +124,8 @@ async def whatsapp_webhook(request: Request):
     )
 
     try:
-        send_text_message(to=from_number, body=reply)
+        sanitized_number = normalize_brazilian_number(from_number)
+        send_text_message(to=sanitized_number, body=reply)
     except Exception as exc:  # pragma: no cover - network call
         logger.exception("Failed to send WhatsApp message: %s", exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to send reply") from exc
