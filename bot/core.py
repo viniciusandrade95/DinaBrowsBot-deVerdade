@@ -1,6 +1,6 @@
 # bot/core.py
 from .config import ConfigStore, TenantConfig
-from .state import StateStore, SessionState
+from .state import SessionState, StateStore
 from .router import classify_intent, decide_model, hash_text
 from .handlers import handle_rule_based
 from .models import call_oss_model, has_model_credentials
@@ -25,7 +25,7 @@ def handle_message(
         return "Please send a message so I can help you 🙂"
 
     tenant: TenantConfig = config_store.load_tenant_config(tenant_id)
-    session: SessionState = state_store.load_state(tenant_id, user_id)
+    session: SessionState = state_store.get_session(tenant_id, user_id)
 
     # Update simple metrics / context
     history_len = session.context.get("history_len", 0)
@@ -68,7 +68,7 @@ def handle_message(
 
     # Update state for next turn
     session.context["last_question_hash"] = hash_text(text)
-    session.last_updated = __import__("time").time()
-    state_store.save_state(session)
+    session.touch()
+    state_store.save_session(session)
 
     return reply
