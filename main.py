@@ -1,12 +1,12 @@
 # main.py
-from bot.state import InMemoryStateStore
 from bot.core import handle_message
+from bot.settings import build_state_store
 from app import build_demo_config_store
 
 
 if __name__ == "__main__":
     config_store = build_demo_config_store()
-    state_store = InMemoryStateStore()
+    state_store = build_state_store()
 
     tenant_id = "store-1"
     user_id = "user-abc"
