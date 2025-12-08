@@ -38,6 +38,10 @@ def decide_model(
     if intent in {"STORE_HOURS", "STORE_LOCATION"}:
         return None
 
+    # Treat noisy/very short inputs as rule-based so we can ask the user to clarify
+    if intent == "NOISE":
+        return None
+
     # Chit-chat disabled → avoid using model if not store-related
     if intent == "GENERAL_QUERY" and not tenant_config.allow_chitchat:
         # You can still call model for store-related reasoning if you want
