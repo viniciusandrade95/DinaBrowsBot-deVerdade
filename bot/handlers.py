@@ -1,4 +1,5 @@
 # bot/handlers.py
+import re
 from typing import Optional
 
 from .config import TenantConfig
@@ -68,6 +69,90 @@ def handle_rule_based(
 ) -> str:
     tone = tenant.tone
     info = tenant.store_info
+
+    if intent == "STOCK_CHECK":
+        lower = text.lower()
+
+        size: Optional[str] = None
+        size_patterns = [
+            (r"\bsize\s*(?P<size>\d{1,2}(?:\.\d)?)\b", None),
+            (r"\beu\s*(?P<size>\d{1,2}(?:\.\d)?)\b", "EU"),
+            (r"\bus\s*(?P<size>\d{1,2}(?:\.\d)?)\b", "US"),
+        ]
+        for pattern, prefix in size_patterns:
+            match = re.search(pattern, lower, re.IGNORECASE)
+            if match:
+                raw_size = match.group("size")
+                if raw_size:
+                    size = f"{prefix} {raw_size}".strip() if prefix else raw_size
+                break
+
+        cleaned = lower
+        for pattern, _ in size_patterns:
+            cleaned = re.sub(pattern, " ", cleaned, flags=re.IGNORECASE)
+
+        cleaned = re.sub(r"[^a-z0-9\s]", " ", cleaned)
+        stopwords = {
+            "do",
+            "you",
+            "have",
+            "in",
+            "stock",
+            "available",
+            "availability",
+            "is",
+            "there",
+            "any",
+            "a",
+            "an",
+            "the",
+            "this",
+            "that",
+            "it",
+            "its",
+            "s",
+            "for",
+            "check",
+            "can",
+            "got",
+            "please",
+            "thanks",
+            "thank",
+            "hi",
+            "hello",
+            "hey",
+        }
+        tokens = [tok for tok in cleaned.split() if tok and tok not in stopwords and not tok.isdigit()]
+        prior_product = session.context.get("requested_product", "") if session else ""
+        product_name = (" ".join(tokens) or prior_product).strip()
+
+        if session is not None:
+            if product_name:
+                session.context["requested_product"] = product_name
+            if size:
+                session.context["requested_size"] = size
+
+        product_label = product_name.title() if product_name else None
+
+        if product_label and size:
+            return (
+                f"Got it — checking availability for {product_label} in size {size}. "
+                "Any preferred color, and should I reserve it for pickup or arrange delivery?"
+            )
+        if product_label:
+            return (
+                f"I can check stock for {product_label}. Which size do you need (EU/US)? "
+                "Also let me know your preferred color and whether you want pickup or delivery."
+            )
+        if size:
+            return (
+                f"I can check availability in size {size}. Which product or model should I look up? "
+                "Share your preferred color too, and if you prefer pickup or delivery."
+            )
+        return (
+            "I can check stock for you. Tell me the product name and size (EU/US), "
+            "plus your preferred color and whether you want pickup or delivery."
+        )
 
     if intent == "STORE_HOURS":
         if tone == "friendly":
