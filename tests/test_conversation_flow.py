@@ -3,23 +3,21 @@ import unittest
 from bot.config import InMemoryConfigStore, TenantConfig
 from bot.core import handle_message
 from bot.state import InMemoryStateStore
+from bot.knowledge import get_studio_info
 
 
 def make_config_store():
+    info = get_studio_info()
     demo_tenant = TenantConfig(
         tenant_id="store-1",
-        name="Sneaker Planet",
+        name=info["name"],
         tone="friendly",
-        language="en",
-        currency="EUR",
+        language="pt",
+        currency="BRL",
         default_model="20b",
-        allow_chitchat=True,
+        allow_chitchat=False,
         max_reply_length=600,
-        store_info={
-            "openingHours": "Mon–Sat 10:00–20:00",
-            "address": "123 Sneaker Street",
-            "phone": "+49 123 456 789",
-        },
+        store_info=info,
     )
     return InMemoryConfigStore({"store-1": demo_tenant})
 
@@ -31,12 +29,12 @@ class ConversationFlowTests(unittest.TestCase):
         self.tenant_id = "store-1"
         self.user_id = "test-user"
 
-    def test_conversation_progresses_and_updates_history(self):
+    def test_basic_info_flow(self):
         messages = [
-            "Hi there",
-            "What time do you close today?",
-            "Do you have running shoes in size 42?",
-            "Thanks, bye",
+            "Oi",  # greeting
+            "qual é o endereço?",  # location
+            "qual horário funciona?",  # hours
+            "obrigado",  # closing
         ]
         replies = []
 
@@ -52,96 +50,56 @@ class ConversationFlowTests(unittest.TestCase):
             replies.append(reply)
             self.assertTrue(reply.strip(), "Bot returned an empty reply")
 
-        # Conversation metadata should capture the number of turns
         session = self.state_store.get_session(self.tenant_id, self.user_id)
         self.assertEqual(session.context.get("history_len"), len(messages))
+        self.assertTrue(any("DinaBrows" in r for r in replies))
+        self.assertTrue(session.context.get("closed"))
 
-        # Replies should not get stuck repeating the same message across turns
-        self.assertGreaterEqual(len(set(replies)), 2)
-
-    def test_repeated_noise_does_not_spin_forever(self):
-        """Very short inputs are treated as noise but still return quickly."""
-
-        for _ in range(10):
-            reply = handle_message(
-                tenant_id=self.tenant_id,
-                user_id=self.user_id,
-                text="?",
-                message_id="noise",
-                state_store=self.state_store,
-                config_store=self.config_store,
-            )
-            self.assertIn("rephrase", reply.lower())
-
-        session = self.state_store.get_session(self.tenant_id, self.user_id)
-        self.assertEqual(session.context.get("history_len"), 10)
-
-    def test_air_zoom_stock_conversation_over_multiple_turns(self):
-        """Simulate a 5-turn stock inquiry to ensure responses stay on track."""
-
-        messages = [
-            "Do you have Air Zoom in size 42?",
-            "It's the Nike Air Zoom Pegasus",
-            "Size 42 EU",
-            "Do you deliver to Porto?",
-            "Thanks!",
+    def test_booking_flow(self):
+        steps = [
+            "quero agendar",  # start
+            "brow lamination completa",  # service
+            "10/06",  # date
+            "15:00",  # time
+            "Ana",  # name
+            "+55 21 99999-0000",  # phone
         ]
 
-        expected_fragments = [
-            "checking availability",  # initial stock prompt
-            "help with sneakers",  # generic guidance with suggestions
-            "checking availability",  # size mention loops back to stock prompt
-            "courier delivery",  # shipping branch
-            "thanks for chatting",  # closing branch
-        ]
-
-        replies = []
-
-        for text, fragment in zip(messages, expected_fragments):
-            reply = handle_message(
+        last_reply = ""
+        for text in steps:
+            last_reply = handle_message(
                 tenant_id=self.tenant_id,
                 user_id=self.user_id,
                 text=text,
-                message_id="air-zoom-seq",
+                message_id="booking",
                 state_store=self.state_store,
                 config_store=self.config_store,
             )
-            replies.append(reply)
-            self.assertIn(fragment, reply.lower())
 
+        self.assertIn("Agendamento registrado", last_reply)
         session = self.state_store.get_session(self.tenant_id, self.user_id)
-        self.assertEqual(session.context.get("history_len"), len(messages))
-        self.assertGreaterEqual(len(set(replies)), 3)
+        self.assertNotIn("booking", session.context)
 
-    def test_two_turn_stock_acknowledgement(self):
-        greeting = handle_message(
+    def test_service_details_and_advice(self):
+        detail_reply = handle_message(
             tenant_id=self.tenant_id,
             user_id=self.user_id,
-            text="hello",
-            message_id="stock-hello",
+            text="me fala sobre design de sobrancelhas",
+            message_id="detail",
             state_store=self.state_store,
             config_store=self.config_store,
         )
-        self.assertIn("hi", greeting.lower())
+        self.assertIn("Design de Sobrancelhas", detail_reply)
 
-        stock_reply = handle_message(
+        advice_reply = handle_message(
             tenant_id=self.tenant_id,
             user_id=self.user_id,
-            text="do you have air zoom size 43",
-            message_id="stock-check",
+            text="nao sei qual serviço escolher",
+            message_id="advice",
             state_store=self.state_store,
             config_store=self.config_store,
         )
-
-        lower_reply = stock_reply.lower()
-        self.assertIn("air zoom", lower_reply)
-        self.assertIn("size 43", lower_reply)
-        self.assertIn("color", lower_reply)
-        self.assertTrue("pickup" in lower_reply or "delivery" in lower_reply)
-
-        session = self.state_store.get_session(self.tenant_id, self.user_id)
-        self.assertEqual(session.context.get("requested_product"), "air zoom")
-        self.assertEqual(session.context.get("requested_size"), "43")
+        self.assertIn("natural", advice_reply.lower())
 
 
 if __name__ == "__main__":

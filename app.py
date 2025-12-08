@@ -12,23 +12,21 @@ from bot.core import handle_message
 from bot.settings import build_state_store
 from bot.config import InMemoryConfigStore, TenantConfig
 from bot.whatsapp import send_text_message
+from bot.knowledge import get_studio_info
 
 
 def build_demo_config_store() -> InMemoryConfigStore:
+    info = get_studio_info()
     demo_tenant = TenantConfig(
         tenant_id="store-1",
-        name="Sneaker Planet",
+        name=info["name"],
         tone="friendly",
-        language="en",
-        currency="€",
+        language="pt",
+        currency="BRL",
         default_model="20b",
-        allow_chitchat=True,
+        allow_chitchat=False,
         max_reply_length=600,
-        store_info={
-            "openingHours": "Mon–Sat 10:00–20:00",
-            "address": "123 Sneaker Street",
-            "phone": "+49 123 456 789",
-        },
+        store_info=info,
     )
     return InMemoryConfigStore({"store-1": demo_tenant})
 

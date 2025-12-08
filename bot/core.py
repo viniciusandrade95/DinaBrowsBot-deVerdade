@@ -14,64 +14,45 @@ def handle_message(
     state_store: StateStore,
     config_store: ConfigStore,
 ) -> str:
-    """
-    Main entrypoint: pure bot logic.
-    - Stateless at function level
-    - Multi-tenant
-    - Routes between rules / 20B / 120B
-    """
     text = (text or "").strip()
     if not text:
-        return "Please send a message so I can help you 🙂"
+        return "Por favor, me envie uma mensagem para que eu possa ajudar 😊"
 
     tenant: TenantConfig = config_store.load_tenant_config(tenant_id)
     session: SessionState = state_store.get_session(tenant_id, user_id)
 
-    # If the previous conversation was explicitly closed, start a new one unless the
-    # user is still saying goodbye.
-    tentative_intent = classify_intent(text)
+    tentative_intent = classify_intent(text, session)
     if session.context.get("closed") and tentative_intent != "CLOSING":
         session.reset()
-    intent = classify_intent(text)
+    intent = classify_intent(text, session)
 
-    # Update simple metrics / context
     history_len = session.context.get("history_len", 0)
     session.context["history_len"] = history_len + 1
 
-    # Guardrails – input length, etc.
     if len(text) > 1024:
-        return "That message is a bit long. Could you shorten it a little?"
+        return "Mensagem longa demais. Pode resumir um pouco?"
 
-    # Classify intent
-    # Decide if we use rules only, or which model
     model_choice = decide_model(intent, tenant, session, text)
 
     if model_choice is None:
         reply = handle_rule_based(intent, text, tenant, session)
     elif not has_model_credentials():
-        # Avoid calling the model when credentials are missing; keep helping with store info
         reply = handle_rule_based("GENERAL_QUERY", text, tenant, session)
-    else:
-        # model_choice is "20b" or "120b"
+    else:  # pragma: no cover - models not used in rule-first setup
         model_name = f"gpt-oss:{model_choice}"
         try:
             reply = call_oss_model(model_name, tenant, session, text)
-        except Exception as exc:
-            # Model unavailable or failed (e.g., missing API key). Fall back to a safe default
+        except Exception as exc:  # pragma: no cover
             session.context["last_model_error"] = str(exc)
             reply = (
-                "I'm having trouble reaching our assistant right now. "
-                "Tell me what you need about the store and I'll do my best with the info I have."
+                "Estou com dificuldade técnica agora, mas posso te ajudar com as informações da DinaBrows."
             )
 
-    # Avoid echoing the user's text back directly
     if reply.strip().lower() == text.strip().lower():
         reply = (
-            "I'm here to help with products, availability, and store info. "
-            "Tell me what you need and I'll share the details."
+            "Sou o assistente da DinaBrows. Posso explicar serviços, preços ou marcar um horário."
         )
 
-    # Update state for next turn
     session.context["last_question_hash"] = hash_text(text)
     session.touch()
     state_store.save_session(session)
