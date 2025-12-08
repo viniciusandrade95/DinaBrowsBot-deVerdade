@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def normalize_brazilian_number(number: str) -> str:
-    """Ensure Brazilian WhatsApp numbers include the leading '9' after the area code."""
+    """Normalize Brazilian WhatsApp numbers to include exactly one '9' after the DDD."""
 
     if not number:
         return number
@@ -48,10 +48,17 @@ def normalize_brazilian_number(number: str) -> str:
     digits_only = "".join(ch for ch in stripped if ch.isdigit())
     has_plus = stripped.startswith("+")
 
-    if digits_only.startswith("55"):
-        # 55 + area (2) + mobile (9). If length is 12 digits, insert missing '9'.
-        if len(digits_only) == 12:
-            digits_only = f"{digits_only[:4]}9{digits_only[4:]}"
+    if digits_only.startswith("55") and len(digits_only) >= 4:
+        # 55 + area (2) + subscriber. Ensure a single leading '9' after DDD.
+        prefix = digits_only[:4]
+        subscriber = digits_only[4:]
+
+        if subscriber.startswith("99"):
+            subscriber = f"9{subscriber[2:]}"
+        elif not subscriber.startswith("9"):
+            subscriber = f"9{subscriber}"
+
+        digits_only = f"{prefix}{subscriber}"
         return f"+{digits_only}" if has_plus or stripped.startswith("+55") else digits_only
 
     return stripped

@@ -13,3 +13,7 @@ def test_keeps_valid_brazil_number_intact():
 
 def test_non_brazil_numbers_are_untouched():
     assert normalize_brazilian_number("+14155552671") == "+14155552671"
+
+
+def test_removes_double_nine_after_ddd():
+    assert normalize_brazilian_number("+55219987654321") == "+5521987654321"
