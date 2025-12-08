@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse
 
 from bot.core import handle_message
-from bot.state import InMemoryStateStore
+from bot.settings import build_state_store
 from bot.config import InMemoryConfigStore, TenantConfig
 from bot.whatsapp import send_text_message
 
@@ -35,7 +35,7 @@ def build_demo_config_store() -> InMemoryConfigStore:
 
 app = FastAPI(title="DinaBrowsBot API")
 config_store = build_demo_config_store()
-state_store = InMemoryStateStore()
+state_store = build_state_store()
 logger = logging.getLogger(__name__)
 
 
