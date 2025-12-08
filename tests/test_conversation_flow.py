@@ -88,9 +88,9 @@ class ConversationFlowTests(unittest.TestCase):
         ]
 
         expected_fragments = [
-            "check stock",  # initial stock prompt
+            "checking availability",  # initial stock prompt
             "help with sneakers",  # generic guidance with suggestions
-            "check stock",  # size mention loops back to stock prompt
+            "checking availability",  # size mention loops back to stock prompt
             "courier delivery",  # shipping branch
             "thanks for chatting",  # closing branch
         ]
@@ -112,6 +112,36 @@ class ConversationFlowTests(unittest.TestCase):
         session = self.state_store.get_session(self.tenant_id, self.user_id)
         self.assertEqual(session.context.get("history_len"), len(messages))
         self.assertGreaterEqual(len(set(replies)), 3)
+
+    def test_two_turn_stock_acknowledgement(self):
+        greeting = handle_message(
+            tenant_id=self.tenant_id,
+            user_id=self.user_id,
+            text="hello",
+            message_id="stock-hello",
+            state_store=self.state_store,
+            config_store=self.config_store,
+        )
+        self.assertIn("hi", greeting.lower())
+
+        stock_reply = handle_message(
+            tenant_id=self.tenant_id,
+            user_id=self.user_id,
+            text="do you have air zoom size 43",
+            message_id="stock-check",
+            state_store=self.state_store,
+            config_store=self.config_store,
+        )
+
+        lower_reply = stock_reply.lower()
+        self.assertIn("air zoom", lower_reply)
+        self.assertIn("size 43", lower_reply)
+        self.assertIn("color", lower_reply)
+        self.assertTrue("pickup" in lower_reply or "delivery" in lower_reply)
+
+        session = self.state_store.get_session(self.tenant_id, self.user_id)
+        self.assertEqual(session.context.get("requested_product"), "air zoom")
+        self.assertEqual(session.context.get("requested_size"), "43")
 
 
 if __name__ == "__main__":
