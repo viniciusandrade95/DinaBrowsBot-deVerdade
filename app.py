@@ -12,6 +12,7 @@ from bot.core import handle_message
 from bot.settings import build_state_store
 from bot.config import InMemoryConfigStore, TenantConfig
 from bot.whatsapp import send_text_message
+from bot.contact_log import log_contact_number
 from bot.knowledge import get_studio_info
 
 
@@ -108,23 +109,37 @@ async def whatsapp_webhook(request: Request):
 
         message = messages[0]
         from_number = message.get("from")
+        if not from_number:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing sender number",
+            )
         text_body = message.get("text", {}).get("body", "")
         message_id = message.get("id", "whatsapp")
     except (KeyError, IndexError) as exc:
         logger.exception("Malformed webhook payload: %s", data)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload") from exc
 
+    try:
+        sanitized_number = normalize_brazilian_number(from_number)
+    except Exception as exc:
+        logger.exception("Failed to normalize number %s: %s", from_number, exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sender number"
+        ) from exc
+
     reply = handle_message(
         tenant_id="store-1",
-        user_id=from_number,
+        user_id=sanitized_number,
         text=text_body,
         message_id=message_id,
         state_store=state_store,
         config_store=config_store,
     )
 
+    log_contact_number(sanitized_number)
+
     try:
-        sanitized_number = normalize_brazilian_number(from_number)
         send_text_message(to=sanitized_number, body=reply)
     except Exception as exc:  # pragma: no cover - network call
         logger.exception("Failed to send WhatsApp message: %s", exc)
