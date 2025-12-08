@@ -76,6 +76,43 @@ class ConversationFlowTests(unittest.TestCase):
         session = self.state_store.get_session(self.tenant_id, self.user_id)
         self.assertEqual(session.context.get("history_len"), 10)
 
+    def test_air_zoom_stock_conversation_over_multiple_turns(self):
+        """Simulate a 5-turn stock inquiry to ensure responses stay on track."""
+
+        messages = [
+            "Do you have Air Zoom in size 42?",
+            "It's the Nike Air Zoom Pegasus",
+            "Size 42 EU",
+            "Do you deliver to Porto?",
+            "Thanks!",
+        ]
+
+        expected_fragments = [
+            "check stock",  # initial stock prompt
+            "help with sneakers",  # generic guidance with suggestions
+            "check stock",  # size mention loops back to stock prompt
+            "courier delivery",  # shipping branch
+            "help with sneakers",  # generic closing guidance
+        ]
+
+        replies = []
+
+        for text, fragment in zip(messages, expected_fragments):
+            reply = handle_message(
+                tenant_id=self.tenant_id,
+                user_id=self.user_id,
+                text=text,
+                message_id="air-zoom-seq",
+                state_store=self.state_store,
+                config_store=self.config_store,
+            )
+            replies.append(reply)
+            self.assertIn(fragment, reply.lower())
+
+        session = self.state_store.get_session(self.tenant_id, self.user_id)
+        self.assertEqual(session.context.get("history_len"), len(messages))
+        self.assertGreaterEqual(len(set(replies)), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
