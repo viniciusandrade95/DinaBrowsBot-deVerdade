@@ -1,6 +1,7 @@
 # bot/router.py
 from typing import Optional
 import hashlib
+import re
 from .config import TenantConfig
 from .state import SessionState
 
@@ -14,6 +15,17 @@ def classify_intent(text: str) -> str:
     closing_keywords = ["thanks", "thank you", "bye", "goodbye", "that is all", "that's all", "done", "no more", "appreciate it"]
     if any(word in t for word in closing_keywords):
         return "CLOSING"
+    stock_terms = [
+        "in stock",
+        "stock for",
+        "available",
+        "availability",
+        "do you have",
+        "have you got",
+    ]
+    size_regex = r"\b(?:size\s*\d{1,2}(?:\.\d)?|(?:eu|us)\s*\d{1,2}(?:\.\d)?)\b"
+    if any(term in t for term in stock_terms) or re.search(size_regex, t):
+        return "STOCK_CHECK"
     if any(w in t for w in ["hour", "open", "close", "opening"]):
         return "STORE_HOURS"
     if any(w in t for w in ["where", "address", "location"]):
@@ -40,7 +52,7 @@ def decide_model(
     if intent == "CLOSING":
         return None
     # Pure rule-based
-    if intent in {"STORE_HOURS", "STORE_LOCATION"}:
+    if intent in {"STORE_HOURS", "STORE_LOCATION", "STOCK_CHECK"}:
         return None
 
     # Treat noisy/very short inputs as rule-based so we can ask the user to clarify
