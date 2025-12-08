@@ -122,7 +122,7 @@ def handle_rule_based(
             "hello",
             "hey",
         }
-        tokens = [tok for tok in cleaned.split() if tok and tok not in stopwords and not tok.isdigit()]
+        tokens = [tok for tok in cleaned.split() if tok and tok not in stopwords]
         prior_product = session.context.get("requested_product", "") if session else ""
         product_name = (" ".join(tokens) or prior_product).strip()
 
