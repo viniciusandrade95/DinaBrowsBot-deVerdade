@@ -128,7 +128,8 @@ async def whatsapp_webhook(request: Request):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload") from exc
 
     try:
-        sanitized_number = normalize_brazilian_number(from_number)
+        sanitized_number = from_number
+        #sanitized_number = normalize_brazilian_number(from_number)
     except Exception as exc:
         logger.exception("Failed to normalize number %s: %s", from_number, exc)
         raise HTTPException(
