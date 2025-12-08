@@ -138,7 +138,7 @@ async def whatsapp_webhook(request: Request):
 
     try:  # Notify internal number about the new contact; failures shouldn't block processing
         send_text_message(
-            to="353830867975",
+            to="5521996973295",
             body=f"Novo contato via WhatsApp: {sanitized_number}",
         )
     except Exception as exc:  # pragma: no cover - network call
