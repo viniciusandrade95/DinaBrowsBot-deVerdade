@@ -116,6 +116,10 @@ async def whatsapp_webhook(request: Request):
 
         message = messages[0]
         from_number = message.get("from")
+
+        contacts = change.get("contacts", [])
+        business_phone = change.get("business_phone", [])
+        
         if not from_number:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -138,8 +142,8 @@ async def whatsapp_webhook(request: Request):
 
     try:  # Notify internal number about the new contact; failures shouldn't block processing
         send_text_message(
-            to="+5521996973295",
-            body=f"Novo contato via WhatsApp: {sanitized_number}",
+            to=from_number,
+            body=f"Novo contato via WhatsApp: {contacts[0]}",
         )
     except Exception as exc:  # pragma: no cover - network call
         logger.warning("Failed to forward contact %s: %s", sanitized_number, exc)
