@@ -108,6 +108,9 @@ async def whatsapp_webhook(request: Request):
     """Handle incoming WhatsApp messages and reply using the bot logic."""
 
     data = await request.json()
+    print("=== Incoming WhatsApp Webhook ===")
+    print(data)
+    print("=================================")
     try:
         change = data["entry"][0]["changes"][0]["value"]
         messages = change.get("messages", [])
