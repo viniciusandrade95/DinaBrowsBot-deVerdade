@@ -135,18 +135,19 @@ async def whatsapp_webhook(request: Request):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload") from exc
 
     try:
-        sanitized_number = from_number
-        #sanitized_number = normalize_brazilian_number(from_number)
+        sanitized_number = normalize_brazilian_number(from_number)
     except Exception as exc:
         logger.exception("Failed to normalize number %s: %s", from_number, exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sender number"
         ) from exc
 
+    forward_to = os.getenv("INTERNAL_CONTACT_FORWARD", "353830867975")
+    contact_label = contacts[0] if contacts else sanitized_number
     try:  # Notify internal number about the new contact; failures shouldn't block processing
         send_text_message(
-            to=from_number,
-            body=f"Novo contato via WhatsApp: {contacts[0]}",
+            to=forward_to,
+            body=f"Novo contato via WhatsApp: {contact_label}",
         )
     except Exception as exc:  # pragma: no cover - network call
         logger.warning("Failed to forward contact %s: %s", sanitized_number, exc)
